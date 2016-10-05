@@ -1,63 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright (C) 2016, Carnegie Mellon University and University of Cambridge,
-// all rights reserved.
-//
-// THIS SOFTWARE IS PROVIDED “AS IS” FOR ACADEMIC USE ONLY AND ANY EXPRESS
-// OR IMPLIED WARRANTIES WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY.
-// OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
-//
-// Notwithstanding the license granted herein, Licensee acknowledges that certain components
-// of the Software may be covered by so-called “open source” software licenses (“Open Source
-// Components”), which means any software licenses approved as open source licenses by the
-// Open Source Initiative or any substantially similar licenses, including without limitation any
-// license that, as a condition of distribution of the software licensed under such license,
-// requires that the distributor make the software available in source code format. Licensor shall
-// provide a list of Open Source Components for a particular version of the Software upon
-// Licensee’s request. Licensee will comply with the applicable terms of such licenses and to
-// the extent required by the licenses covering Open Source Components, the terms of such
-// licenses will apply in lieu of the terms of this Agreement. To the extent the terms of the
-// licenses applicable to Open Source Components prohibit any of the restrictions in this
-// License Agreement with respect to such Open Source Component, such restrictions will not
-// apply to such Open Source Component. To the extent the terms of the licenses applicable to
-// Open Source Components require Licensor to make an offer to provide source code or
-// related information in connection with the Software, such offer is hereby made. Any request
-// for source code or related information should be directed to cl-face-tracker-distribution@lists.cam.ac.uk
-// Licensee acknowledges receipt of notices for the Open Source Components for the initial
-// delivery of the Software.
-
-//     * Any publications arising from the use of this software, including but
-//       not limited to academic journal and conference publications, technical
-//       reports and manuals, must cite at least one of the following works:
-//
-//       OpenFace: an open source facial behavior analysis toolkit
-//       Tadas Baltrušaitis, Peter Robinson, and Louis-Philippe Morency
-//       in IEEE Winter Conference on Applications of Computer Vision, 2016  
-//
-//       Rendering of Eyes for Eye-Shape Registration and Gaze Estimation
-//       Erroll Wood, Tadas Baltrušaitis, Xucong Zhang, Yusuke Sugano, Peter Robinson, and Andreas Bulling 
-//       in IEEE International. Conference on Computer Vision (ICCV),  2015 
-//
-//       Cross-dataset learning and person-speci?c normalisation for automatic Action Unit detection
-//       Tadas Baltrušaitis, Marwa Mahmoud, and Peter Robinson 
-//       in Facial Expression Recognition and Analysis Challenge, 
-//       IEEE International Conference on Automatic Face and Gesture Recognition, 2015 
-//
-//       Constrained Local Neural Fields for robust facial landmark detection in the wild.
-//       Tadas Baltrušaitis, Peter Robinson, and Louis-Philippe Morency. 
-//       in IEEE Int. Conference on Computer Vision Workshops, 300 Faces in-the-Wild Challenge, 2013.    
-//
-///////////////////////////////////////////////////////////////////////////////
-
 #include "stdafx.h"
-
 #include <LandmarkDetectorFunc.h>
 
 // OpenCV includes
@@ -67,6 +8,7 @@
 
 // System includes
 #include <vector>
+#include <CoreFoundation/CoreFoundation.h>
 
 using namespace LandmarkDetector;
 
@@ -290,12 +232,126 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
 	// and using a smaller search area
 
 	// Indicating that this is a first detection in video sequence or after restart
+    auto start1 = std::chrono::high_resolution_clock::now();
+    auto start2 = std::chrono::high_resolution_clock::now();
+    
 	bool initial_detection = !clnf_model.tracking_initialised;
+    
+        // This is used for both detection (if it the tracking has not been initialised yet) or if the tracking failed (however we do this every n frames, for speed)
+        // This also has the effect of an attempt to reinitialise just after the tracking has failed, which is useful during large motions
+    if((!clnf_model.tracking_initialised && (clnf_model.failures_in_a_row + 1) % (params.reinit_video_every * 6) == 0)
+       || (clnf_model.tracking_initialised && !clnf_model.detection_success && params.reinit_video_every > 0 && clnf_model.failures_in_a_row % params.reinit_video_every == 0))
+    {
+        
+        auto start2 = std::chrono::high_resolution_clock::now();
+        
+        cv::Rect_<double> bounding_box;
+        
+            // If the face detector has not been initialised read it in
+        if(clnf_model.face_detector_HAAR.empty())
+        {
+            CFBundleRef mainBundle = CFBundleGetMainBundle();
+            CFURLRef bundleURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
+            CFStringRef bundlePath = CFURLCopyFileSystemPath(bundleURL, kCFURLPOSIXPathStyle);
+            CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
+            string mainBundlePath = CFStringGetCStringPtr(bundlePath, encodingMethod);
+            
+            clnf_model.face_detector_HAAR.load(mainBundlePath + "/" + params.face_detector_location);
+            clnf_model.face_detector_location = params.face_detector_location;
+        }
+        
+        cv::Point preference_det(-1, -1);
+        if(clnf_model.preference_det.x != -1 && clnf_model.preference_det.y != -1)
+        {
+            preference_det.x = clnf_model.preference_det.x * grayscale_image.cols;
+            preference_det.y = clnf_model.preference_det.y * grayscale_image.rows;
+            clnf_model.preference_det = cv::Point(-1, -1);
+        }
+        
+        bool face_detection_success;
+        if(params.curr_face_detector == FaceModelParameters::HOG_SVM_DETECTOR)
+        {
+            double confidence;
+            auto start3 = std::chrono::high_resolution_clock::now();
+            face_detection_success = LandmarkDetector::DetectSingleFaceHOG(bounding_box, grayscale_image, clnf_model.face_detector_HOG, confidence, preference_det);
+            auto finish3 = std::chrono::high_resolution_clock::now();
+            auto microseconds3 = std::chrono::duration_cast<std::chrono::milliseconds>(finish3-start3);
+            std::cout << "DETECT HOG) " << microseconds3.count() << "ms\n";
+            
+        }
+        else if(params.curr_face_detector == FaceModelParameters::HAAR_DETECTOR)
+        {
+            double confidence;
+            auto start4 = std::chrono::high_resolution_clock::now();
+            face_detection_success = LandmarkDetector::DetectSingleFace(bounding_box, grayscale_image, clnf_model.face_detector_HAAR, preference_det);
+            auto finish4 = std::chrono::high_resolution_clock::now();
+            auto microseconds4 = std::chrono::duration_cast<std::chrono::milliseconds>(finish4-start4);
+            std::cout << "DETECT HAAR) " << microseconds4.count() << "ms\n";
+        }
+        
+        auto finish2 = std::chrono::high_resolution_clock::now();
+        auto microseconds2 = std::chrono::duration_cast<std::chrono::milliseconds>(finish2-start2);
+        std::cout << "redetect block 1) " << microseconds2.count() << "ms\n";
+        auto start3 = std::chrono::high_resolution_clock::now();
+        
+            // Attempt to detect landmarks using the detected face (if unseccessful the detection will be ignored)
+        if(face_detection_success)
+        {
+                // Indicate that tracking has started as a face was detected
+            clnf_model.tracking_initialised = true;
+            
+                // Keep track of old model values so that they can be restored if redetection fails
+            cv::Vec6d params_global_init = clnf_model.params_global;
+            cv::Mat_<double> params_local_init = clnf_model.params_local.clone();
+            double likelihood_init = clnf_model.model_likelihood;
+            cv::Mat_<double> detected_landmarks_init = clnf_model.detected_landmarks.clone();
+            cv::Mat_<double> landmark_likelihoods_init = clnf_model.landmark_likelihoods.clone();
+            
+                // Use the detected bounding box and empty local parameters
+            clnf_model.params_local.setTo(0);
+            clnf_model.pdm.CalcParams(clnf_model.params_global, bounding_box, clnf_model.params_local);
+            
+                // Make sure the search size is large
+            params.window_sizes_current = params.window_sizes_init;
+            
+                // Do the actual landmark detection (and keep it only if successful)
+            bool landmark_detection_success = clnf_model.DetectLandmarks(grayscale_image, depth_image, params);
+            
+                // If landmark reinitialisation unsucessful continue from previous estimates
+                // if it's initial detection however, do not care if it was successful as the validator might be wrong, so continue trackig
+                // regardless
+            if(!initial_detection && !landmark_detection_success)
+            {
+                
+                    // Restore previous estimates
+                clnf_model.params_global = params_global_init;
+                clnf_model.params_local = params_local_init.clone();
+                clnf_model.pdm.CalcShape2D(clnf_model.detected_landmarks, clnf_model.params_local, clnf_model.params_global);
+                clnf_model.model_likelihood = likelihood_init;
+                clnf_model.detected_landmarks = detected_landmarks_init.clone();
+                clnf_model.landmark_likelihoods = landmark_likelihoods_init.clone();
+                
+                auto finish3 = std::chrono::high_resolution_clock::now();
+                auto microseconds3 = std::chrono::duration_cast<std::chrono::milliseconds>(finish3-start3);
+                std::cout << "redetect block 2) " << microseconds3.count() << "ms\n";
+                return false;
+            }
+            else
+            {
+                clnf_model.failures_in_a_row = -1;				
+                UpdateTemplate(grayscale_image, clnf_model);
+                
+                auto finish3 = std::chrono::high_resolution_clock::now();
+                auto microseconds3 = std::chrono::duration_cast<std::chrono::milliseconds>(finish3-start3);
+                std::cout << "redetect block 2) " << microseconds3.count() << "ms\n";
+                return true;
+            }
+        }
+    }
 
 	// Only do it if there was a face detection at all
-	if(clnf_model.tracking_initialised)
+	else if(clnf_model.tracking_initialised)
 	{
-
 		// The area of interest search size will depend if the previous track was successful
 		if(!clnf_model.detection_success)
 		{
@@ -313,7 +369,8 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
 		}
 
 		bool track_success = clnf_model.DetectLandmarks(grayscale_image, depth_image, params);
-		if(!track_success)
+        
+        if(!track_success)
 		{
 			// Make a record that tracking failed
 			clnf_model.failures_in_a_row++;
@@ -324,90 +381,12 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
 			clnf_model.failures_in_a_row = -1;			
 			UpdateTemplate(grayscale_image, clnf_model);
 		}
+        
+        auto finish1 = std::chrono::high_resolution_clock::now();
+        auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
+        std::cout << "tracking block) " << microseconds1.count() << "ms\n";
 	}
-
-	// This is used for both detection (if it the tracking has not been initialised yet) or if the tracking failed (however we do this every n frames, for speed)
-	// This also has the effect of an attempt to reinitialise just after the tracking has failed, which is useful during large motions
-	if((!clnf_model.tracking_initialised && (clnf_model.failures_in_a_row + 1) % (params.reinit_video_every * 6) == 0) 
-		|| (clnf_model.tracking_initialised && !clnf_model.detection_success && params.reinit_video_every > 0 && clnf_model.failures_in_a_row % params.reinit_video_every == 0))
-	{
-
-		cv::Rect_<double> bounding_box;
-
-		// If the face detector has not been initialised read it in
-		if(clnf_model.face_detector_HAAR.empty())
-		{
-			clnf_model.face_detector_HAAR.load(params.face_detector_location);
-			clnf_model.face_detector_location = params.face_detector_location;
-		}
-
-		cv::Point preference_det(-1, -1);
-		if(clnf_model.preference_det.x != -1 && clnf_model.preference_det.y != -1)
-		{
-			preference_det.x = clnf_model.preference_det.x * grayscale_image.cols;
-			preference_det.y = clnf_model.preference_det.y * grayscale_image.rows;
-			clnf_model.preference_det = cv::Point(-1, -1);
-		}
-
-		bool face_detection_success;
-		if(params.curr_face_detector == FaceModelParameters::HOG_SVM_DETECTOR)
-		{
-			double confidence;
-			face_detection_success = LandmarkDetector::DetectSingleFaceHOG(bounding_box, grayscale_image, clnf_model.face_detector_HOG, confidence, preference_det);
-		}
-		else if(params.curr_face_detector == FaceModelParameters::HAAR_DETECTOR)
-		{
-			face_detection_success = LandmarkDetector::DetectSingleFace(bounding_box, grayscale_image, clnf_model.face_detector_HAAR, preference_det);
-		}
-
-		// Attempt to detect landmarks using the detected face (if unseccessful the detection will be ignored)
-		if(face_detection_success)
-		{
-			// Indicate that tracking has started as a face was detected
-			clnf_model.tracking_initialised = true;
-						
-			// Keep track of old model values so that they can be restored if redetection fails
-			cv::Vec6d params_global_init = clnf_model.params_global;
-			cv::Mat_<double> params_local_init = clnf_model.params_local.clone();
-			double likelihood_init = clnf_model.model_likelihood;
-			cv::Mat_<double> detected_landmarks_init = clnf_model.detected_landmarks.clone();
-			cv::Mat_<double> landmark_likelihoods_init = clnf_model.landmark_likelihoods.clone();
-
-			// Use the detected bounding box and empty local parameters
-			clnf_model.params_local.setTo(0);
-			clnf_model.pdm.CalcParams(clnf_model.params_global, bounding_box, clnf_model.params_local);		
-
-			// Make sure the search size is large
-			params.window_sizes_current = params.window_sizes_init;
-
-			// Do the actual landmark detection (and keep it only if successful)
-			bool landmark_detection_success = clnf_model.DetectLandmarks(grayscale_image, depth_image, params);
-
-			// If landmark reinitialisation unsucessful continue from previous estimates
-			// if it's initial detection however, do not care if it was successful as the validator might be wrong, so continue trackig
-			// regardless
-			if(!initial_detection && !landmark_detection_success)
-			{
-
-				// Restore previous estimates
-				clnf_model.params_global = params_global_init;
-				clnf_model.params_local = params_local_init.clone();
-				clnf_model.pdm.CalcShape2D(clnf_model.detected_landmarks, clnf_model.params_local, clnf_model.params_global);
-				clnf_model.model_likelihood = likelihood_init;
-				clnf_model.detected_landmarks = detected_landmarks_init.clone();
-				clnf_model.landmark_likelihoods = landmark_likelihoods_init.clone();
-
-				return false;
-			}
-			else
-			{
-				clnf_model.failures_in_a_row = -1;				
-				UpdateTemplate(grayscale_image, clnf_model);
-				return true;
-			}
-		}
-	}
-
+    
 	// if the model has not been initialised yet class it as a failure
 	if(!clnf_model.tracking_initialised)
 	{

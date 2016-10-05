@@ -1,63 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright (C) 2016, Carnegie Mellon University and University of Cambridge,
-// all rights reserved.
-//
-// THIS SOFTWARE IS PROVIDED “AS IS” FOR ACADEMIC USE ONLY AND ANY EXPRESS
-// OR IMPLIED WARRANTIES WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
-// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY.
-// OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
-//
-// Notwithstanding the license granted herein, Licensee acknowledges that certain components
-// of the Software may be covered by so-called “open source” software licenses (“Open Source
-// Components”), which means any software licenses approved as open source licenses by the
-// Open Source Initiative or any substantially similar licenses, including without limitation any
-// license that, as a condition of distribution of the software licensed under such license,
-// requires that the distributor make the software available in source code format. Licensor shall
-// provide a list of Open Source Components for a particular version of the Software upon
-// Licensee’s request. Licensee will comply with the applicable terms of such licenses and to
-// the extent required by the licenses covering Open Source Components, the terms of such
-// licenses will apply in lieu of the terms of this Agreement. To the extent the terms of the
-// licenses applicable to Open Source Components prohibit any of the restrictions in this
-// License Agreement with respect to such Open Source Component, such restrictions will not
-// apply to such Open Source Component. To the extent the terms of the licenses applicable to
-// Open Source Components require Licensor to make an offer to provide source code or
-// related information in connection with the Software, such offer is hereby made. Any request
-// for source code or related information should be directed to cl-face-tracker-distribution@lists.cam.ac.uk
-// Licensee acknowledges receipt of notices for the Open Source Components for the initial
-// delivery of the Software.
-
-//     * Any publications arising from the use of this software, including but
-//       not limited to academic journal and conference publications, technical
-//       reports and manuals, must cite at least one of the following works:
-//
-//       OpenFace: an open source facial behavior analysis toolkit
-//       Tadas Baltrušaitis, Peter Robinson, and Louis-Philippe Morency
-//       in IEEE Winter Conference on Applications of Computer Vision, 2016  
-//
-//       Rendering of Eyes for Eye-Shape Registration and Gaze Estimation
-//       Erroll Wood, Tadas Baltrušaitis, Xucong Zhang, Yusuke Sugano, Peter Robinson, and Andreas Bulling 
-//       in IEEE International. Conference on Computer Vision (ICCV),  2015 
-//
-//       Cross-dataset learning and person-speci?c normalisation for automatic Action Unit detection
-//       Tadas Baltrušaitis, Marwa Mahmoud, and Peter Robinson 
-//       in Facial Expression Recognition and Analysis Challenge, 
-//       IEEE International Conference on Automatic Face and Gesture Recognition, 2015 
-//
-//       Constrained Local Neural Fields for robust facial landmark detection in the wild.
-//       Tadas Baltrušaitis, Peter Robinson, and Louis-Philippe Morency. 
-//       in IEEE Int. Conference on Computer Vision Workshops, 300 Faces in-the-Wild Challenge, 2013.    
-//
-///////////////////////////////////////////////////////////////////////////////
-
 #include "stdafx.h"
-
 #include <LandmarkDetectorModel.h>
 
 // Boost includes
@@ -71,9 +12,6 @@
 #include <LandmarkDetectorUtils.h>
 
 using namespace LandmarkDetector;
-
-//=============================================================================
-//=============================================================================
 
 // Constructors
 // A default constructor
@@ -586,9 +524,13 @@ void CLNF::Reset(double x, double y)
 // The main internal landmark detection call (should not be used externally?)
 bool CLNF::DetectLandmarks(const cv::Mat_<uchar> &image, const cv::Mat_<float> &depth, FaceModelParameters& params)
 {
-
-	// Fits from the current estimate of local and global parameters in the model
+    auto start1 = std::chrono::high_resolution_clock::now();
+    // Fits from the current estimate of local and global parameters in the model
 	bool fit_success = Fit(image, depth, params.window_sizes_current, params);
+
+    auto finish1 = std::chrono::high_resolution_clock::now();
+    auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
+    std::cout << "Fit func) " << microseconds1.count() << "ms\n";
 
 	// Store the landmarks converged on in detected_landmarks
 	pdm.CalcShape2D(detected_landmarks, params_local, params_global);	
@@ -733,12 +675,12 @@ bool CLNF::Fit(const cv::Mat_<uchar>& im, const cv::Mat_<float>& depthImg, const
 	// Optimise the model across a number of areas of interest (usually in descending window size and ascending scale size)
 	for(int scale = 0; scale < num_scales; scale++)
 	{
-
+        auto start1 = std::chrono::high_resolution_clock::now();
+        
 		int window_size = window_sizes[scale];
 
 		if(window_size == 0 ||  0.9 * patch_experts.patch_scaling[scale] > params_global[0])
 			continue;
-
 		// The patch expert response computation
 		if(scale != window_sizes.size() - 1)
 		{
@@ -749,7 +691,7 @@ bool CLNF::Fit(const cv::Mat_<uchar>& im, const cv::Mat_<float>& depthImg, const
 			// Do not use depth for the final iteration as it is not as accurate
 			patch_experts.Response(patch_expert_responses, sim_ref_to_img, sim_img_to_ref, im, cv::Mat(), pdm, params_global, params_local, window_size, scale);
 		}
-		
+        
 		if(parameters.refine_parameters == true)
 		{
 			// Adapt the parameters based on scale (wan't to reduce regularisation as scale increases, but increa sigma and tikhonov)
@@ -764,16 +706,21 @@ bool CLNF::Fit(const cv::Mat_<uchar>& im, const cv::Mat_<float>& depthImg, const
 
 		// Get the current landmark locations
 		pdm.CalcShape2D(current_shape, params_local, params_global);
+        
 
 		// Get the view used by patch experts
 		int view_id = patch_experts.GetViewIdx(params_global, scale);
 
 		// the actual optimisation step
-		this->NU_RLMS(params_global, params_local, patch_expert_responses, cv::Vec6d(params_global), params_local.clone(), current_shape, sim_img_to_ref, sim_ref_to_img, window_size, view_id, true, scale, this->landmark_likelihoods, tmp_parameters);
+        this->NU_RLMS(params_global, params_local, patch_expert_responses, cv::Vec6d(params_global), params_local.clone(), current_shape, sim_img_to_ref, sim_ref_to_img, window_size, view_id, true, scale, this->landmark_likelihoods, tmp_parameters); // can be deleted
 
 		// non-rigid optimisation
 		this->model_likelihood = this->NU_RLMS(params_global, params_local, patch_expert_responses, cv::Vec6d(params_global), params_local.clone(), current_shape, sim_img_to_ref, sim_ref_to_img, window_size, view_id, false, scale, this->landmark_likelihoods, tmp_parameters);
 		
+        auto finish1 = std::chrono::high_resolution_clock::now();
+        auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
+        std::cout << "Fit " << scale << ") " << microseconds1.count() << "ms\n";
+        
 		// Can't track very small images reliably (less than ~30px across)
 		if(params_global[0] < 0.25)
 		{
