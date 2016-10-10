@@ -250,13 +250,7 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
             // If the face detector has not been initialised read it in
         if(clnf_model.face_detector_HAAR.empty())
         {
-            CFBundleRef mainBundle = CFBundleGetMainBundle();
-            CFURLRef bundleURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
-            CFStringRef bundlePath = CFURLCopyFileSystemPath(bundleURL, kCFURLPOSIXPathStyle);
-            CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
-            string mainBundlePath = CFStringGetCStringPtr(bundlePath, encodingMethod);
-            
-            clnf_model.face_detector_HAAR.load(mainBundlePath + "/" + params.face_detector_location);
+            clnf_model.face_detector_HAAR.load(params.face_detector_location);
             clnf_model.face_detector_location = params.face_detector_location;
         }
         
