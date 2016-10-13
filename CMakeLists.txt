@@ -5,14 +5,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-find_package( OpenCV REQUIRED )
-MESSAGE("OpenCV information:") 
-MESSAGE("  OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}") 
-MESSAGE("  OpenCV_LIBRARIES: ${OpenCV_LIBRARIES}") 
-MESSAGE("  OpenCV_LIBRARY_DIRS: ${OpenCV_LIBRARY_DIRS}") 
-include_directories( ${OpenCV_INCLUDE_DIRS} )
+set(OpenCV_DIR /Users/Dragollla/AndroidStudioProject/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni)
 
-find_package( Boost 1.5.9 REQUIRED COMPONENTS filesystem system)
+set(Boost_INCLUDE_DIRS /Users/DraGollla/Downloads/boost_1_62_0)
+set(Boost_LIBRARIES libboost_filesystem;libboost_system)
+set(Boost_LIBRARY_DIRS /Users/Dragollla/Downloads/boost_1_62_0/android/lib)
+
+MESSAGE("OpenCV dir is ${OpenCV_DIR}")
+
+#find_package( Boost REQUIRED COMPONENTS filesystem system)
 MESSAGE("Boost information:") 
 MESSAGE("  Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}") 
 MESSAGE("  Boost_LIBRARIES: ${Boost_LIBRARIES}") 
@@ -22,7 +23,24 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS}/boost)
 LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})	
 
-find_package(TBB REQUIRED)
+#find_package( OpenCV CONFIG REQUIRED )
+
+set(OpenCV_LIBRARIES opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
+
+set(OpenCV_LIBS opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
+
+set(OpenCV_INCLUDE_DIRS /Users/DraGollla/AndroidStudioProject/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include/opencv; /Users/DraGollla/AndroidStudioProject/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include)
+
+MESSAGE("OpenCV information:") 
+MESSAGE("  OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}") 
+MESSAGE("  OpenCV_LIBRARIES: ${OpenCV_LIBRARIES}") 
+MESSAGE("  OpenCV_LIBRARY_DIRS: ${OpenCV_LIBRARY_DIRS}") 
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
+set(TBB_ROOT_DIR /Users/DraGollla/OpenFace/lib/3rdParty/tbb)
+set(TBB_INCLUDE_DIRS /Users/DraGollla/OpenFace/lib/3rdParty/tbb/include)
+set(TBB_LIBRARIES tbb;tbb_malloc)
+#find_package(TBB REQUIRED)
 
 # Move LandmarkDetector model
 file(GLOB files "lib/local/LandmarkDetector/model/*.txt")
