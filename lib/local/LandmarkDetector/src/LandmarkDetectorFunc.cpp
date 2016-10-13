@@ -8,8 +8,8 @@
 
 // System includes
 #include <vector>
-#include <CoreFoundation/CoreFoundation.h>
-
+//#include <CoreFoundation/CoreFoundation.h>
+#include <chrono>
 using namespace LandmarkDetector;
 
 // Getting a head pose estimate from the currently detected landmarks (rotation with respect to point camera)

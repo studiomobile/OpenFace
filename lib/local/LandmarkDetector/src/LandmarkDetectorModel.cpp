@@ -10,6 +10,7 @@
 
 // Local includes
 #include <LandmarkDetectorUtils.h>
+#include <chrono>
 
 using namespace LandmarkDetector;
 
