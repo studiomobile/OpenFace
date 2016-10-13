@@ -150,8 +150,3 @@ add_subdirectory(lib/3rdParty/dlib)
 add_subdirectory(lib/local/LandmarkDetector)
 # Facial Expression analysis library
 add_subdirectory(lib/local/FaceAnalyser)
-# executables
-add_subdirectory(exe/FaceLandmarkImg)
-add_subdirectory(exe/FaceLandmarkVid)
-add_subdirectory(exe/FaceLandmarkVidMulti)
-add_subdirectory(exe/FeatureExtraction)
