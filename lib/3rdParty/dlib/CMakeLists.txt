@@ -140,8 +140,8 @@ if (NOT TARGET dlib)
             set (dlib_needed_libraries ws2_32 comctl32 gdi32 imm32)
          endif()
       elseif(APPLE) ############################################################################
-         find_library(pthreadlib pthread)
-         set (dlib_needed_libraries ${pthreadlib})
+         #find_library(pthreadlib pthread)
+         #set (dlib_needed_libraries ${pthreadlib})
 
          if (NOT DLIB_NO_GUI_SUPPORT)
             find_library(xlib X11)
@@ -164,10 +164,11 @@ if (NOT TARGET dlib)
             endif()
          endif()
 
-         mark_as_advanced(pthreadlib xlib xlib_path x11_path)
+         #mark_as_advanced(pthreadlib xlib xlib_path x11_path)
+         mark_as_advanced(xlib xlib_path x11_path)
       else () ##################################################################################
-         find_library(pthreadlib pthread)
-         set (dlib_needed_libraries ${pthreadlib})
+         #find_library(pthreadlib pthread)
+         #set (dlib_needed_libraries ${pthreadlib})
 
          # link to the nsl library if it exists.  this is something you need sometimes 
          find_library(nsllib nsl)
@@ -195,7 +196,8 @@ if (NOT TARGET dlib)
             endif()
          endif()
 
-         mark_as_advanced(nsllib pthreadlib socketlib)
+         #mark_as_advanced(nsllib pthreadlib socketlib)
+         mark_as_advanced(nsllib socketlib)
       endif () ##################################################################################
 
       if (NOT DLIB_NO_GUI_SUPPORT)
@@ -222,7 +224,7 @@ if (NOT TARGET dlib)
             set (dlib_needed_libraries ${dlib_needed_libraries} ${PNG_LIBRARY})
          else()
             # If we can't find libpng then statically compile it in.
-            include_directories(external/libpng external/zlib)
+            include_directories(include/dlib/external/libpng include/dlib/external/zlib)
             set(source_files ${source_files}
                include/dlib/external/libpng/png.c
                include/dlib/external/libpng/pngerror.c
@@ -270,7 +272,7 @@ if (NOT TARGET dlib)
             set (dlib_needed_libraries ${dlib_needed_libraries} ${JPEG_LIBRARY})
          else()
             # If we can't find libjpeg then statically compile it in.
-            include_directories(external/libjpeg)
+            include_directories(include/dlib/external/libjpeg)
             set(source_files ${source_files}
                   include/dlib/external/libjpeg/jcomapi.cpp
                   include/dlib/external/libjpeg/jdapimin.cpp

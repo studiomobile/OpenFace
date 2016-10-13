@@ -5,11 +5,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-set(OpenCV_DIR /Users/Dragollla/AndroidStudioProject/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni)
+set(OpenCV_DIR /Users/Dragollla/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni)
 
-set(Boost_INCLUDE_DIRS /Users/DraGollla/Downloads/boost_1_62_0)
+set(OpenCV_LIBRARIES opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
+
+set(OpenCV_LIBS opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
+
+set(OpenCV_INCLUDE_DIRS /Users/DraGollla/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include/opencv; /Users/DraGollla/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include)
+
+set(Boost_INCLUDE_DIRS /Users/DraGollla/sandbox/boost_1_62_0)
 set(Boost_LIBRARIES libboost_filesystem;libboost_system)
-set(Boost_LIBRARY_DIRS /Users/Dragollla/Downloads/boost_1_62_0/android/lib)
+set(Boost_LIBRARY_DIRS /Users/Dragollla/sandbox/boost_1_62_0/android-armeabi/lib)
 
 MESSAGE("OpenCV dir is ${OpenCV_DIR}")
 
@@ -24,12 +30,6 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS}/boost)
 LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})	
 
 #find_package( OpenCV CONFIG REQUIRED )
-
-set(OpenCV_LIBRARIES opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
-
-set(OpenCV_LIBS opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
-
-set(OpenCV_INCLUDE_DIRS /Users/DraGollla/AndroidStudioProject/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include/opencv; /Users/DraGollla/AndroidStudioProject/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include)
 
 MESSAGE("OpenCV information:") 
 MESSAGE("  OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}") 
@@ -141,12 +141,12 @@ endforeach()
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
     if (GCC_VERSION VERSION_LESS 4.7)
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -msse -msse2 -msse3")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
     else ()
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -msse -msse2 -msse3")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     endif ()
 else ()
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -msse -msse2 -msse3")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif ()
 
 # Boost
