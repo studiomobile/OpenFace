@@ -19,8 +19,7 @@ namespace LandmarkDetector
 
 // For subpixel accuracy drawing
 const int draw_shiftbits = 4;
-const int draw_multiplier = (1 << 4) * 4;
-
+int draw_multiplier = 1 << 4;
 
 // Useful utility for creating directories for storing the output files
 void create_directory_from_file(string output_path)
@@ -1012,11 +1011,17 @@ vector<cv::Point2d> CalculateLandmarks(CLNF& clnf_model)
 
 }
 
+bool is_multiplier_calculated = false;
+
 // Drawing landmarks on a face image
 void Draw(cv::Mat img, const cv::Mat_<double>& shape2D, const cv::Mat_<int>& visibilities)
 {
 	int n = shape2D.rows/2;
-	
+
+	if(!is_multiplier_calculated){
+		draw_multiplier = draw_multiplier * (img.cols / 180.f);
+		is_multiplier_calculated = true;
+	}
 
 	// Drawing feature points
 	if(n >= 66)
