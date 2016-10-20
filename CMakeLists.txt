@@ -1,46 +1,67 @@
 cmake_minimum_required (VERSION 2.8)
 project (OpenFace)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
+set(CURRENT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+
+# CMake
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-set(OpenCV_DIR /Users/Dragollla/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni)
 
-set(OpenCV_LIBRARIES opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
+# OpenCV
+set(OPENCV_DIR ${CURRENT_DIR}/../OpenCV-android-sdk/sdk/native/jni)
+set(OPENCV_LIBRARIES 
+		opencv_videostab
+		opencv_videoio
+		opencv_video
+		opencv_superres
+		opencv_stitching
+		opencv_shape
+		opencv_photo
+		opencv_objdetect
+		opencv_ml
+		opencv_imgproc
+		opencv_imgcodecs
+		opencv_highgui
+		opencv_flann
+		opencv_features2d
+		opencv_core
+		opencv_calib3d)
 
-set(OpenCV_LIBS opencv_videostab;opencv_videoio;opencv_video;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_objdetect;opencv_ml;opencv_imgproc;opencv_imgcodecs;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d)
+set(OPENCV_INCLUDE_DIRS 
+	${CURRENT_DIR}/../OpenCV-android-sdk/sdk/native/jni/include/opencv; 
+	${CURRENT_DIR}/../OpenCV-android-sdk/sdk/native/jni/include)
 
-set(OpenCV_INCLUDE_DIRS /Users/DraGollla/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include/opencv; /Users/DraGollla/ringid_android/deps/OpenCV-android-sdk/sdk/native/jni/include)
+include_directories(${OPENCV_INCLUDE_DIRS})
 
-set(Boost_INCLUDE_DIRS /Users/DraGollla/sandbox/boost_1_62_0)
-set(Boost_LIBRARIES libboost_filesystem;libboost_system)
-set(Boost_LIBRARY_DIRS /Users/Dragollla/sandbox/boost_1_62_0/android-armeabi/lib)
 
-MESSAGE("OpenCV dir is ${OpenCV_DIR}")
+# Boost
+set(BOOST_INCLUDE_DIRS ${CURRENT_DIR}/../boost_1_62_0)
+set(BOOST_LIBRARY_DIRS ${CURRENT_DIR}/../boost_1_62_0/android-armeabi/lib)
+set(Boost_LIBRARIES 
+		libboost_filesystem
+		libboost_system)
 
-#find_package( Boost REQUIRED COMPONENTS filesystem system)
-MESSAGE("Boost information:") 
-MESSAGE("  Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}") 
-MESSAGE("  Boost_LIBRARIES: ${Boost_LIBRARIES}") 
-MESSAGE("  Boost_LIBRARY_DIRS: ${Boost_LIBRARY_DIRS}") 
+include_directories(${BOOST_INCLUDE_DIRS})
+include_directories(${BOOST_INCLUDE_DIRS}/boost)
+link_directories(${BOOST_LIBRARY_DIRS})	
 
-INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
-INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS}/boost)
-LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})	
+if(WIN32)
+	include_directories(lib/3rdParty/boost)
+	include_directories(lib/3rdParty/boost/boost)
+	link_directories( ${PROJECT_SOURCE_DIR}/lib/3rdParty/boost/lib )
+endif()
 
-#find_package( OpenCV CONFIG REQUIRED )
 
-MESSAGE("OpenCV information:") 
-MESSAGE("  OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}") 
-MESSAGE("  OpenCV_LIBRARIES: ${OpenCV_LIBRARIES}") 
-MESSAGE("  OpenCV_LIBRARY_DIRS: ${OpenCV_LIBRARY_DIRS}") 
-include_directories( ${OpenCV_INCLUDE_DIRS} )
+# TBB 
+set(TBB_ROOT_DIR ${CURRENT_DIR}/lib/3rdParty/tbb)
+set(TBB_INCLUDE_DIRS ${CURRENT_DIR}/lib/3rdParty/tbb/include)
+set(TBB_LIBRARIES 
+		tbb
+		tbb_malloc)
 
-set(TBB_ROOT_DIR /Users/DraGollla/OpenFace/lib/3rdParty/tbb)
-set(TBB_INCLUDE_DIRS /Users/DraGollla/OpenFace/lib/3rdParty/tbb/include)
-set(TBB_LIBRARIES tbb;tbb_malloc)
-#find_package(TBB REQUIRED)
+
 
 # Move LandmarkDetector model
 file(GLOB files "lib/local/LandmarkDetector/model/*.txt")
@@ -149,22 +170,13 @@ else ()
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif ()
 
-# Boost
-if(WIN32)
-	include_directories(lib/3rdParty/boost)
-	include_directories(lib/3rdParty/boost/boost)
-	link_directories( ${PROJECT_SOURCE_DIR}/lib/3rdParty/boost/lib )
-else()
-	INCLUDE_DIRECTORIES(${BOOST_INCLUDE_DIR})
-endif()
 
-# dlib
+
+# DLib
 include_directories(lib/3rdParty/dlib/include)
-
-# dlib library
 add_subdirectory(lib/3rdParty/dlib)
 
-# LandmarkDetector library
+
+# LandmarkDetector and FaceAnalyser
 add_subdirectory(lib/local/LandmarkDetector)
-# Facial Expression analysis library
 add_subdirectory(lib/local/FaceAnalyser)

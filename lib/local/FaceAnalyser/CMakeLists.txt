@@ -1,6 +1,6 @@
-#TBB library
-include_directories(${TBB_ROOT_DIR}/include)
+cmake_minimum_required (VERSION 2.8)
 
+include_directories(${TBB_ROOT_DIR}/include)
 include_directories(${BOOST_INCLUDE_DIR})
 
 SET(SOURCE
@@ -23,11 +23,11 @@ SET(HEADERS
 	include/GazeEstimation.h
 )
 
-include_directories(./include)
+include_directories(include)
 include_directories(${FACEANALYSER_SOURCE_DIR}/include)
 include_directories(../LandmarkDetector/include)
 
-add_library( FaceAnalyser ${SOURCE} ${HEADERS})
+add_library(FaceAnalyser ${SOURCE} ${HEADERS})
 
-install (TARGETS FaceAnalyser DESTINATION bin)
-install (FILES ${HEADERS} DESTINATION include)
+install(TARGETS FaceAnalyser DESTINATION bin)
+install(FILES ${HEADERS} DESTINATION include)

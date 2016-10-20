@@ -1,6 +1,6 @@
-#TBB library
-include_directories(${TBB_ROOT_DIR}/include)
+cmake_minimum_required (VERSION 2.8)
 
+include_directories(${TBB_ROOT_DIR}/include)
 include_directories(${BOOST_INCLUDE_DIR})
 
 SET(SOURCE
@@ -32,10 +32,12 @@ SET(HEADERS
 	include/stdafx.h
 )
 
-include_directories(./include)
+include_directories(include)
 include_directories(${LandmarkDetector_SOURCE_DIR}/include)
 
-add_library( LandmarkDetector ${SOURCE} ${HEADERS})
+add_library(LandmarkDetector 
+				${SOURCE} 
+				${HEADERS})
 
-install (TARGETS LandmarkDetector DESTINATION bin)
-install (FILES ${HEADERS} DESTINATION include)
+install(TARGETS LandmarkDetector DESTINATION bin)
+install(FILES ${HEADERS} DESTINATION include)
