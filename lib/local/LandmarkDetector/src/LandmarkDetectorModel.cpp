@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "LandmarkDetectorModel.h"
 #include <LandmarkDetectorModel.h>
 
 // Boost includes
@@ -535,80 +536,80 @@ bool CLNF::DetectLandmarks(const cv::Mat_<uchar> &image, const cv::Mat_<float> &
 	// Store the landmarks converged on in detected_landmarks
 	pdm.CalcShape2D(detected_landmarks, params_local, params_global);	
 	
-	if(params.refine_hierarchical && hierarchical_models.size() > 0)
-	{
-		bool parts_used = false;		
-
-		// Do the hierarchical models in parallel
-		tbb::parallel_for(0, (int)hierarchical_models.size(), [&](int part_model){
-		{
-			// Only do the synthetic eye models if we're doing gaze
-			if (!((hierarchical_model_names[part_model].compare("right_eye_28") == 0 ||
-			hierarchical_model_names[part_model].compare("left_eye_28") == 0)
-			&& !params.track_gaze))
-			{
-
-				int n_part_points = hierarchical_models[part_model].pdm.NumberOfPoints();
-
-				vector<pair<int, int>> mappings = this->hierarchical_mapping[part_model];
-
-				cv::Mat_<double> part_model_locs(n_part_points * 2, 1, 0.0);
-
-				// Extract the corresponding landmarks
-				for (size_t mapping_ind = 0; mapping_ind < mappings.size(); ++mapping_ind)
-				{
-					part_model_locs.at<double>(mappings[mapping_ind].second) = detected_landmarks.at<double>(mappings[mapping_ind].first);
-					part_model_locs.at<double>(mappings[mapping_ind].second + n_part_points) = detected_landmarks.at<double>(mappings[mapping_ind].first + this->pdm.NumberOfPoints());
-				}
-
-				// Fit the part based model PDM
-				hierarchical_models[part_model].pdm.CalcParams(hierarchical_models[part_model].params_global, hierarchical_models[part_model].params_local, part_model_locs);
-
-				// Only do this if we don't need to upsample
-				if (params_global[0] > 0.9 * hierarchical_models[part_model].patch_experts.patch_scaling[0])
-				{
-					parts_used = true;
-
-					this->hierarchical_params[part_model].window_sizes_current = this->hierarchical_params[part_model].window_sizes_init;
-
-					// Do the actual landmark detection
-					hierarchical_models[part_model].DetectLandmarks(image, depth, hierarchical_params[part_model]);
-
-				}
-				else
-				{
-					hierarchical_models[part_model].pdm.CalcShape2D(hierarchical_models[part_model].detected_landmarks, hierarchical_models[part_model].params_local, hierarchical_models[part_model].params_global);
-				}
-			}
-		}
-		});
-
-		// Recompute main model based on the fit part models
-		if(parts_used)
-		{
-
-			for (size_t part_model = 0; part_model < hierarchical_models.size(); ++part_model)
-			{
-				vector<pair<int, int>> mappings = this->hierarchical_mapping[part_model];
-
-				if (!((hierarchical_model_names[part_model].compare("right_eye_28") == 0 ||
-					hierarchical_model_names[part_model].compare("left_eye_28") == 0)
-					&& !params.track_gaze))
-				{
-					// Reincorporate the models into main tracker
-					for (size_t mapping_ind = 0; mapping_ind < mappings.size(); ++mapping_ind)
-					{
-						detected_landmarks.at<double>(mappings[mapping_ind].first) = hierarchical_models[part_model].detected_landmarks.at<double>(mappings[mapping_ind].second);
-						detected_landmarks.at<double>(mappings[mapping_ind].first + pdm.NumberOfPoints()) = hierarchical_models[part_model].detected_landmarks.at<double>(mappings[mapping_ind].second + hierarchical_models[part_model].pdm.NumberOfPoints());
-					}
-				}
-			}
-
-			pdm.CalcParams(params_global, params_local, detected_landmarks);		
-			pdm.CalcShape2D(detected_landmarks, params_local, params_global);
-		}
-
-	}
+//	if(params.refine_hierarchical && hierarchical_models.size() > 0)
+//	{
+//		bool parts_used = false;		
+//
+//		// Do the hierarchical models in parallel
+//		tbb::parallel_for(0, (int)hierarchical_models.size(), [&](int part_model){
+//		{
+//			// Only do the synthetic eye models if we're doing gaze
+//			if (!((hierarchical_model_names[part_model].compare("right_eye_28") == 0 ||
+//			hierarchical_model_names[part_model].compare("left_eye_28") == 0)
+//			&& !params.track_gaze))
+//			{
+//
+//				int n_part_points = hierarchical_models[part_model].pdm.NumberOfPoints();
+//
+//				vector<pair<int, int>> mappings = this->hierarchical_mapping[part_model];
+//
+//				cv::Mat_<double> part_model_locs(n_part_points * 2, 1, 0.0);
+//
+//				// Extract the corresponding landmarks
+//				for (size_t mapping_ind = 0; mapping_ind < mappings.size(); ++mapping_ind)
+//				{
+//					part_model_locs.at<double>(mappings[mapping_ind].second) = detected_landmarks.at<double>(mappings[mapping_ind].first);
+//					part_model_locs.at<double>(mappings[mapping_ind].second + n_part_points) = detected_landmarks.at<double>(mappings[mapping_ind].first + this->pdm.NumberOfPoints());
+//				}
+//
+//				// Fit the part based model PDM
+//				hierarchical_models[part_model].pdm.CalcParams(hierarchical_models[part_model].params_global, hierarchical_models[part_model].params_local, part_model_locs);
+//
+//				// Only do this if we don't need to upsample
+//				if (params_global[0] > 0.9 * hierarchical_models[part_model].patch_experts.patch_scaling[0])
+//				{
+//					parts_used = true;
+//
+//					this->hierarchical_params[part_model].window_sizes_current = this->hierarchical_params[part_model].window_sizes_init;
+//
+//					// Do the actual landmark detection
+//					hierarchical_models[part_model].DetectLandmarks(image, depth, hierarchical_params[part_model]);
+//
+//				}
+//				else
+//				{
+//					hierarchical_models[part_model].pdm.CalcShape2D(hierarchical_models[part_model].detected_landmarks, hierarchical_models[part_model].params_local, hierarchical_models[part_model].params_global);
+//				}
+//			}
+//		}
+//		});
+//
+//		// Recompute main model based on the fit part models
+//		if(parts_used)
+//		{
+//
+//			for (size_t part_model = 0; part_model < hierarchical_models.size(); ++part_model)
+//			{
+//				vector<pair<int, int>> mappings = this->hierarchical_mapping[part_model];
+//
+//				if (!((hierarchical_model_names[part_model].compare("right_eye_28") == 0 ||
+//					hierarchical_model_names[part_model].compare("left_eye_28") == 0)
+//					&& !params.track_gaze))
+//				{
+//					// Reincorporate the models into main tracker
+//					for (size_t mapping_ind = 0; mapping_ind < mappings.size(); ++mapping_ind)
+//					{
+//						detected_landmarks.at<double>(mappings[mapping_ind].first) = hierarchical_models[part_model].detected_landmarks.at<double>(mappings[mapping_ind].second);
+//						detected_landmarks.at<double>(mappings[mapping_ind].first + pdm.NumberOfPoints()) = hierarchical_models[part_model].detected_landmarks.at<double>(mappings[mapping_ind].second + hierarchical_models[part_model].pdm.NumberOfPoints());
+//					}
+//				}
+//			}
+//
+//			pdm.CalcParams(params_global, params_local, detected_landmarks);		
+//			pdm.CalcShape2D(detected_landmarks, params_local, params_global);
+//		}
+//
+//	}
 
 	// Check detection correctness
 	if(params.validate_detections && fit_success)
@@ -691,6 +692,9 @@ bool CLNF::Fit(const cv::Mat_<uchar>& im, const cv::Mat_<float>& depthImg, const
 			// Do not use depth for the final iteration as it is not as accurate
 			patch_experts.Response(patch_expert_responses, sim_ref_to_img, sim_img_to_ref, im, cv::Mat(), pdm, params_global, params_local, window_size, scale);
 		}
+        auto finish1 = std::chrono::high_resolution_clock::now();
+        auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
+        std::cout << "Fit " << scale << ") " << microseconds1.count() << "ms\n";
         
 		if(parameters.refine_parameters == true)
 		{
@@ -712,14 +716,12 @@ bool CLNF::Fit(const cv::Mat_<uchar>& im, const cv::Mat_<float>& depthImg, const
 		int view_id = patch_experts.GetViewIdx(params_global, scale);
 
 		// the actual optimisation step
-        this->NU_RLMS(params_global, params_local, patch_expert_responses, cv::Vec6d(params_global), params_local.clone(), current_shape, sim_img_to_ref, sim_ref_to_img, window_size, view_id, true, scale, this->landmark_likelihoods, tmp_parameters); // can be deleted
+//        this->NU_RLMS(params_global, params_local, patch_expert_responses, cv::Vec6d(params_global), params_local.clone(), current_shape, sim_img_to_ref, sim_ref_to_img, window_size, view_id, true, scale, this->landmark_likelihoods, tmp_parameters); // can be deleted
 
 		// non-rigid optimisation
 		this->model_likelihood = this->NU_RLMS(params_global, params_local, patch_expert_responses, cv::Vec6d(params_global), params_local.clone(), current_shape, sim_img_to_ref, sim_ref_to_img, window_size, view_id, false, scale, this->landmark_likelihoods, tmp_parameters);
 		
-        auto finish1 = std::chrono::high_resolution_clock::now();
-        auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
-        std::cout << "Fit " << scale << ") " << microseconds1.count() << "ms\n";
+        
         
 		// Can't track very small images reliably (less than ~30px across)
 		if(params_global[0] < 0.25)
