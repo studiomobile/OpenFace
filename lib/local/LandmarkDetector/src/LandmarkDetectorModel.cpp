@@ -286,7 +286,7 @@ void CLNF::Read_CLNF(string clnf_location)
 	patch_experts.Read(intensity_expert_locations, depth_expert_locations, ccnf_expert_locations);
 
 	// Read in a face detector
-	face_detector_HOG = dlib::get_frontal_face_detector();
+//	face_detector_HOG = dlib::get_frontal_face_detector();
 
 }
 
