@@ -9,6 +9,10 @@
 #include <sstream>
 #include <iostream>
 
+#if __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 using namespace std;
 using namespace LandmarkDetector;
 
@@ -153,6 +157,18 @@ FaceModelParameters::FaceModelParameters(vector<string> &arguments)
 
 void FaceModelParameters::init()
 {
+    //path to app folder
+    std::string mainBundlePath = "";
+    
+    //main bundle path for ios
+#if __APPLE__
+    CFBundleRef mainBundle = CFBundleGetBundleWithIdentifier(CFSTR("SM.facemask"));
+    CFURLRef bundleURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
+    CFStringRef bundlePath = CFURLCopyFileSystemPath(bundleURL, kCFURLPOSIXPathStyle);
+    CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
+    mainBundlePath = CFStringGetCStringPtr(bundlePath, encodingMethod);
+    mainBundlePath += "/";
+#endif
 
 	// number of iterations that will be performed at each scale
 	num_optimisation_iteration = 5;
@@ -188,7 +204,7 @@ void FaceModelParameters::init()
 	// For first frame use the initialisation
 	window_sizes_current = window_sizes_init;
 
-	model_location = "model/main_clm_general.txt";
+	model_location = mainBundlePath + "model/main_clm_general.txt";
 
 	sigma = 1.5;
 	reg_factor = 25;
@@ -201,12 +217,8 @@ void FaceModelParameters::init()
 
 	reinit_video_every = 4;
 
-	// Face detection
-#if OS_UNIX
-	face_detector_location = "classifiers/haarcascade_frontalface_alt.xml";
-#else
-	face_detector_location = "classifiers/haarcascade_frontalface_alt.xml";
-#endif
+	// Face detection    
+    face_detector_location = mainBundlePath + "classifiers/haarcascade_frontalface_alt.xml";
 
 	quiet_mode = false;
 
