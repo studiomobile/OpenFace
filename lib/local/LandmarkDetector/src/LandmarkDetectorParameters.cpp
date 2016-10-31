@@ -199,7 +199,7 @@ void FaceModelParameters::init()
 
 	face_template_scale = 0.3;
 	// Off by default (as it might lead to some slight inaccuracies in slowly moving faces)
-	use_face_template = false;
+	use_face_template = true;
 
 	// For first frame use the initialisation
 	window_sizes_current = window_sizes_init;
