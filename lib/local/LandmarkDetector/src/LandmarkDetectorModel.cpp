@@ -525,13 +525,8 @@ void CLNF::Reset(double x, double y)
 // The main internal landmark detection call (should not be used externally?)
 bool CLNF::DetectLandmarks(const cv::Mat_<uchar> &image, const cv::Mat_<float> &depth, FaceModelParameters& params)
 {
-    auto start1 = std::chrono::high_resolution_clock::now();
     // Fits from the current estimate of local and global parameters in the model
 	bool fit_success = Fit(image, depth, params.window_sizes_current, params);
-
-    auto finish1 = std::chrono::high_resolution_clock::now();
-    auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
-    std::cout << "Fit func) " << microseconds1.count() << "ms\n";
 
 	// Store the landmarks converged on in detected_landmarks
 	pdm.CalcShape2D(detected_landmarks, params_local, params_global);	
@@ -676,8 +671,6 @@ bool CLNF::Fit(const cv::Mat_<uchar>& im, const cv::Mat_<float>& depthImg, const
 	// Optimise the model across a number of areas of interest (usually in descending window size and ascending scale size)
 	for(int scale = 0; scale < num_scales; scale++)
 	{
-        auto start1 = std::chrono::high_resolution_clock::now();
-        
 		int window_size = window_sizes[scale];
 
 		if(window_size == 0 ||  0.9 * patch_experts.patch_scaling[scale] > params_global[0])
@@ -692,10 +685,6 @@ bool CLNF::Fit(const cv::Mat_<uchar>& im, const cv::Mat_<float>& depthImg, const
 			// Do not use depth for the final iteration as it is not as accurate
 			patch_experts.Response(patch_expert_responses, sim_ref_to_img, sim_img_to_ref, im, cv::Mat(), pdm, params_global, params_local, window_size, scale);
 		}
-        auto finish1 = std::chrono::high_resolution_clock::now();
-        auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
-        std::cout << "Fit " << scale << ") " << microseconds1.count() << "ms\n";
-        
 		if(parameters.refine_parameters == true)
 		{
 			// Adapt the parameters based on scale (wan't to reduce regularisation as scale increases, but increa sigma and tikhonov)
@@ -923,7 +912,7 @@ double CLNF::NU_RLMS(cv::Vec6d& final_global, cv::Mat_<double>& final_local, con
 	else
 	{
 		cv::Mat_<double> regularisations = cv::Mat_<double>::zeros(1, 6 + m);
-
+        
 		// Setting the regularisation to the inverse of eigenvalues
 		cv::Mat(parameters.reg_factor / E).copyTo(regularisations(cv::Rect(6, 0, m, 1)));
 		cv::Mat_<double> regTerm_d = cv::Mat::diag(regularisations.t());

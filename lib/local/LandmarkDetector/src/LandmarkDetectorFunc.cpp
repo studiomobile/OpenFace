@@ -232,9 +232,6 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
 	// and using a smaller search area
 
 	// Indicating that this is a first detection in video sequence or after restart
-    auto start1 = std::chrono::high_resolution_clock::now();
-    auto start2 = std::chrono::high_resolution_clock::now();
-    
 	bool initial_detection = !clnf_model.tracking_initialised;
     
         // This is used for both detection (if it the tracking has not been initialised yet) or if the tracking failed (however we do this every n frames, for speed)
@@ -242,8 +239,6 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
     if((!clnf_model.tracking_initialised && (clnf_model.failures_in_a_row + 1) % (params.reinit_video_every * 6) == 0)
        || (clnf_model.tracking_initialised && !clnf_model.detection_success && params.reinit_video_every > 0 && clnf_model.failures_in_a_row % params.reinit_video_every == 0))
     {
-        
-        auto start2 = std::chrono::high_resolution_clock::now();
         
         cv::Rect_<double> bounding_box;
         
@@ -266,27 +261,14 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
         if(params.curr_face_detector == FaceModelParameters::HOG_SVM_DETECTOR)
         {
             double confidence;
-            auto start3 = std::chrono::high_resolution_clock::now();
             face_detection_success = LandmarkDetector::DetectSingleFaceHOG(bounding_box, grayscale_image, clnf_model.face_detector_HOG, confidence, preference_det);
-            auto finish3 = std::chrono::high_resolution_clock::now();
-            auto microseconds3 = std::chrono::duration_cast<std::chrono::milliseconds>(finish3-start3);
-            std::cout << "DETECT HOG) " << microseconds3.count() << "ms\n";
-            
         }
         else if(params.curr_face_detector == FaceModelParameters::HAAR_DETECTOR)
         {
             double confidence;
-            auto start4 = std::chrono::high_resolution_clock::now();
             face_detection_success = LandmarkDetector::DetectSingleFace(bounding_box, grayscale_image, clnf_model.face_detector_HAAR, preference_det);
-            auto finish4 = std::chrono::high_resolution_clock::now();
-            auto microseconds4 = std::chrono::duration_cast<std::chrono::milliseconds>(finish4-start4);
-            std::cout << "DETECT HAAR) " << microseconds4.count() << "ms\n";
         }
         
-        auto finish2 = std::chrono::high_resolution_clock::now();
-        auto microseconds2 = std::chrono::duration_cast<std::chrono::milliseconds>(finish2-start2);
-        std::cout << "redetect block 1) " << microseconds2.count() << "ms\n";
-        auto start3 = std::chrono::high_resolution_clock::now();
         
             // Attempt to detect landmarks using the detected face (if unseccessful the detection will be ignored)
         if(face_detection_success)
@@ -325,9 +307,6 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
                 clnf_model.detected_landmarks = detected_landmarks_init.clone();
                 clnf_model.landmark_likelihoods = landmark_likelihoods_init.clone();
                 
-                auto finish3 = std::chrono::high_resolution_clock::now();
-                auto microseconds3 = std::chrono::duration_cast<std::chrono::milliseconds>(finish3-start3);
-                std::cout << "redetect block 2) " << microseconds3.count() << "ms\n";
                 return false;
             }
             else
@@ -335,9 +314,6 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
                 clnf_model.failures_in_a_row = -1;				
                 UpdateTemplate(grayscale_image, clnf_model);
                 
-                auto finish3 = std::chrono::high_resolution_clock::now();
-                auto microseconds3 = std::chrono::duration_cast<std::chrono::milliseconds>(finish3-start3);
-                std::cout << "redetect block 2) " << microseconds3.count() << "ms\n";
                 return true;
             }
         }
@@ -375,10 +351,6 @@ bool LandmarkDetector::DetectLandmarksInVideo(const cv::Mat_<uchar> &grayscale_i
 			clnf_model.failures_in_a_row = -1;			
 			UpdateTemplate(grayscale_image, clnf_model);
 		}
-        
-        auto finish1 = std::chrono::high_resolution_clock::now();
-        auto microseconds1 = std::chrono::duration_cast<std::chrono::milliseconds>(finish1-start1);
-        std::cout << "tracking block) " << microseconds1.count() << "ms\n";
 	}
     
 	// if the model has not been initialised yet class it as a failure
